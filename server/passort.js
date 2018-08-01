@@ -23,6 +23,8 @@ async function link(former, latter) { // link accounts
 }
 
 passport.use('local-login', new LocalStrategy({
+	usernameField: 'username',
+	passwordField: 'password',
 	passReqToCallback : true // allows us to pass in the req from our route (lets us check if a user is logged in or not)
 }, async (req, username, password, done) => {
 	try {
@@ -43,6 +45,8 @@ passport.use('local-login', new LocalStrategy({
 }))
 
 passport.use('local-signup', new LocalStrategy({
+	usernameField: 'username',
+	passwordField: 'password',
 	passReqToCallback : true // allows us to pass in the req from our route (lets us check if a user is logged in or not)
 }, async (req, username, password, done) => {
 	try {
