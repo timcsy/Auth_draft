@@ -59,8 +59,11 @@ router.post('/connect/signup', passport.authenticate('local-signup', {
 
 // facebook------------------------------------------------
 // login
-router.get('/connect/facebook', passport.authenticate('facebook-connect', {scope: ['public_profile', 'email']}))
-
+router.get('/connect/facebook', async (ctx) => {
+	if (ctx.isAuthenticated())
+		return passport.authenticate('facebook-connect', {scope: ['public_profile', 'email']})(ctx)
+	else ctx.redirect('/')
+})
 // callback
 router.get('/connect/facebook/callback', passport.authenticate('facebook-connect', {
 	successRedirect: '/member',
