@@ -3,6 +3,7 @@ const passport = require('koa-passport')
 const views = require('koa-views')
 const path = require('path')
 const Identity = require('./models/Identity')
+const User = require('./models/User')
 
 const router = new Router()
 
@@ -58,15 +59,21 @@ router.post('/connect/signup', passport.authenticate('local-signup', {
 
 // facebook------------------------------------------------
 // login
-router.get('/connect/facebook', async (ctx) => {
-	if (!ctx.isAuthenticated()) ctx.redirect('/')
-}, passport.authenticate('facebook-connect', {scope: ['public_profile', 'email']}))
+router.get('/connect/facebook', passport.authenticate('facebook-connect', {scope: ['public_profile', 'email']}))
 
 // callback
 router.get('/connect/facebook/callback', passport.authenticate('facebook-connect', {
 	successRedirect: '/member',
 	failureRedirect: '/connect/login'
 }))
+
+// unlink--------------------------------------------------
+router.get('/unlink/:id', async (ctx) => {
+	const identity = await Identity.findById(ctx.params.id).exec()
+	identity.user = new User()
+	await identity.save()
+	ctx.redirect('/member')
+})
 
 
 ////////////////////////////////////////////////////////////
