@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta http-equiv="X-UA-Compatible" content="ie=edge">
+		<title>Member Area</title>
+	</head>
+	<body>
+		<% for (user of users) { %>
+			<% if (user.type === 'local')  { %>
+				User Info:
+				<br>
+				Name: <%= user.username %>
+				<br>
+			<% } else { %>
+				User Info:
+				<br>
+				Picture: <img src="<%= user.picture %>">
+				<br>
+				Name: <%= user.name %>
+				<br>
+				Email: <%= user.email %>
+				<br>
+			<% } %>
+			<br>
+		<% } %>
+		<br />
+		<a href="/connect/login">Link Account</a>
+		<a href="/logout">Log out</a>
+		<br />
+		Users:
+		<br />
+		<%= users %>
+	</body>
+</html>
