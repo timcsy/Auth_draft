@@ -1,5 +1,5 @@
 {
-  "name": "link",
+  "name": "rabc",
   "version": "1.0.0",
   "description": "",
   "private": true,
@@ -19,6 +19,7 @@
     "koa-router": "^7.4.0",
     "koa-session": "^5.8.2",
     "koa-views": "^6.1.4",
+    "minimatch": "^3.0.4",
     "mongoose": "^5.2.6",
     "passport-facebook": "^2.1.1",
     "passport-local": "^1.0.0"

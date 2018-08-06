@@ -4,10 +4,12 @@ const bcrypt = require('bcrypt')
 const FacebookStrategy = require('passport-facebook').Strategy
 const config = require('./config/facebook')
 const User = require('./models/User')
-const Identity = require('./models/Identity')
 const Local = require('./models/Local')
 const Facebook = require('./models/Facebook')
 
+//-----------------------------------------------------
+// session --------------------------------------------
+//-----------------------------------------------------
 // on login
 passport.serializeUser((user, done) => {
 	done(null, user)
@@ -18,23 +20,22 @@ passport.deserializeUser(async (user, done) => {
 	done(null, user)
 })
 
-async function link(former, latter) { // link accounts
-	return await Identity.updateMany({'user': latter}, {$set: {'user': former}}).exec()
-}
-
+//-----------------------------------------------------
+// local ----------------------------------------------
+//-----------------------------------------------------
 passport.use('local-login', new LocalStrategy({
 	usernameField: 'username',
 	passwordField: 'password',
 	passReqToCallback : true // allows us to pass in the req from our route (lets us check if a user is logged in or not)
 }, async (req, username, password, done) => {
 	try {
-		const identity = await Local.findOne({username: username})
+		const identity = await Local.findOne({username: username}).exec()
 		if (!identity) return done(null, false) // user deosn't exist
 		const cmp = await bcrypt.compare(password, identity.password)
 		if (cmp === false) return done(null, false) // wrong password
 
 		if (req.user) {
-			await link(req.user, identity.user)
+			await User.link(req.user, identity.user)
 			done(null, req.user)
 		} else {
 			done(null, identity.user)
@@ -50,28 +51,38 @@ passport.use('local-signup', new LocalStrategy({
 	passReqToCallback : true // allows us to pass in the req from our route (lets us check if a user is logged in or not)
 }, async (req, username, password, done) => {
 	try {
-		let identity = await Local.findOne({username: username})
+		let identity = await Local.findOne({username: username}).exec()
 		if (identity) return done(null, false) // username is already taken
 		const hash = await bcrypt.hash(password, 12)
 		identity = new Local({username: username, password: hash})
 		
-		let user = req.user // if found then link
-		if (!user) user = new User()  // if DNE then add user
-		identity.user = user
+		if (!req.user) { // if DNE then add user
+			const user = new User()
+			await user.save()
+			identity.user = user
+		}
 		await identity.save()
-		return done(null, identity.user)
+		if(req.user) {
+			await User.link(req.user, identity.user)
+			return done(null, req.user)
+		}	else return done(null, identity.user)
 	} catch (err) {
 		return done(err, false)
 	}
 }))
 
+//-----------------------------------------------------
+// facebook -------------------------------------------
+//-----------------------------------------------------
 async function facebook(req, accessToken, refreshToken, profile, cb) {
 	try {
-		let identity = await Facebook.findOne({id: profile.id, type: 'facebook'})
+		let identity = await Facebook.findOne({id: profile.id, type: 'facebook'}).exec()
 		
 		if (!identity) {
 			identity = new Facebook()
-			identity.user = new User()
+			const user = new User()
+			await user.save()
+			identity.user = user
 		}
 		identity.id = profile.id
 		identity.name = profile.displayName
@@ -81,7 +92,7 @@ async function facebook(req, accessToken, refreshToken, profile, cb) {
 
 		await identity.save()
 
-		if (req.user) await link(req.user, identity.user)
+		if (req.user) await User.link(req.user, identity.user)
 		if (req.user) return cb(null, req.user)
 		else return cb(null, identity.user)
 	} catch (err) {

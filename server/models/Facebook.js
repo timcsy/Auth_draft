@@ -1,4 +1,4 @@
-const mongoose = require('./mongoose')
+const mongoose = require('./Database/mongoose')
 const Identity = require('./Identity')
 
 const facebookSchema = new mongoose.Schema({

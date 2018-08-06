@@ -1,8 +1,8 @@
-const mongoose = require('./mongoose')
+const mongoose = require('./Database/mongoose')
 const Identity = require('./Identity')
 
 const localSchema = new mongoose.Schema({
-	username: String,
+	username: {type: String, unique: true},
 	password: String
 })
 

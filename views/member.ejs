@@ -7,23 +7,23 @@
 		<title>Member Area</title>
 	</head>
 	<body>
-		<% for (user of users) { %>
-			<% if (user.type === 'local')  { %>
-				User Info:
+		<% for (identity of identities) { %>
+			<% if (identity.type === 'local')  { %>
+				Identity Info:
 				<br>
-				Name: <%= user.username %>
+				Name: <%= identity.username %>
 				<br>
 			<% } else { %>
-				User Info:
+				Identity Info:
 				<br>
-				Picture: <img src="<%= user.picture %>">
+				Picture: <img src="<%= identity.picture %>">
 				<br>
-				Name: <%= user.name %>
+				Name: <%= identity.name %>
 				<br>
-				Email: <%= user.email %>
+				Email: <%= identity.email %>
 				<br>
 			<% } %>
-			<button onclick="location.href='/unlink/<%= user._id%>'">Unlink</button>
+			<button onclick="location.href='/unlink/<%= identity._id%>'">Unlink</button>
 			<br>
 			<br>
 		<% } %>
@@ -31,8 +31,8 @@
 		<a href="/connect/login">Link Account</a>
 		<a href="/logout">Log out</a>
 		<br />
-		Users:
+		User:
 		<br />
-		<%= users %>
+		<%= identities %>
 	</body>
 </html>

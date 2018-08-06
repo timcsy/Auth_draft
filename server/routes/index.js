@@ -2,12 +2,12 @@ const Router = require('koa-router')
 const passport = require('koa-passport')
 const views = require('koa-views')
 const path = require('path')
-const Identity = require('./models/Identity')
-const User = require('./models/User')
+const Identity = require('../models/Identity')
+const User = require('../models/User')
 
 const router = new Router()
 
-router.use(views(path.resolve(__dirname, '../views'), {
+router.use(views(path.resolve(__dirname, '../../views'), {
 	extension: 'ejs'
 }))
 
@@ -73,8 +73,7 @@ router.get('/connect/facebook/callback', passport.authenticate('facebook-connect
 // unlink--------------------------------------------------
 router.get('/unlink/:id', async (ctx) => {
 	const identity = await Identity.findById(ctx.params.id).exec()
-	identity.user = new User()
-	await identity.save()
+	identity.unlink()
 	ctx.redirect('/member')
 })
 
@@ -131,8 +130,8 @@ router.get('/connect/signup', async (ctx) => {
 // member page
 router.get('/member', async (ctx) => {
 	if (ctx.isAuthenticated()) {
-		const users = await Identity.find({'user': ctx.state.user}).exec()
-		await ctx.render('member', {users})
+		const user = await User.findById(ctx.state.user).populate('identities').exec()
+		await ctx.render('member', {identities: user.identities})
 	} else {
 		ctx.redirect('/')
 	}
@@ -147,6 +146,57 @@ router.get('/logout', async (ctx) => {
 		ctx.body = {success: false}
     ctx.throw(401)
 	}
+})
+
+const Group = require('../models/Group')
+router.get('/group/add', async (ctx) => {
+	const group = new Group()
+	await group.save()
+	const user = await User.findById(ctx.state.user).exec()
+	user.groups.push(group)
+	user.save()
+	ctx.body = '<a href="/group/' + group._id + '">show</a>'
+})
+router.get('/group/add/:id', async (ctx) => {
+	const group = await Group.findById(ctx.params.id).exec()
+	const user = await User.findById(ctx.state.user).exec()
+	user.groups.push(group)
+	user.save()
+	ctx.body = '<a href="/group/' + ctx.params.id + '">show</a>'
+})
+router.get('/group/:id', async (ctx) => {
+	const group = await Group.findById(ctx.params.id).populate('users').exec()
+	ctx.body = group.users
+})
+
+const RBAC = require('../lib/rbac')
+router.get('/role', async (ctx) => {
+	await RBAC.addUserRoles(ctx.state.user, 'member')
+	await RBAC.addRolesInherits('member', 'guest')
+	await RBAC.addRolesPermissions('guest', 'blog:get', 'allow')
+	await RBAC.addRolesPermissions(['member', 'foo'], ['blog:post'])
+	await RBAC.addRolesPermissions('bar', ['blog:get'], 'deny')
+	await RBAC.config([
+		{
+			roles: ['admin', 'local'],
+			permissions: 'blog:*',
+			inherits: 'member'
+		},
+		{
+			roles: 'baz',
+			permissions: '*:*',
+			inherits: ['guest', 'foo'],
+			action: 'deny'
+		}
+	])
+	await RBAC.addUserPermissions(ctx.state.user, ['blog:put'], 'deny')
+	console.log(await RBAC.check(ctx.state.user, 'blog:get'))
+	console.log(await RBAC.check(ctx.state.user, 'blog:put'))
+	ctx.body = await User.findById(ctx.state.user).exec()
+})
+
+router.get('/role/middleware', RBAC.middleware('blog:put'), async (ctx) => {
+	ctx.body = 'Hello I\'m blog'
 })
 
 module.exports = router

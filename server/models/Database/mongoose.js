@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 const f = require('util').format
-const config = require('../config/mongoose')
+const config = require('../../config/mongoose')
 
 const hostname = config.hostname || 'localhost'
 const port = config.port || 27017
