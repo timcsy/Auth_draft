@@ -148,6 +148,7 @@ router.get('/logout', async (ctx) => {
 	}
 })
 
+// The following is for test------------------------------------------------
 const Group = require('../models/Group')
 router.get('/group/add', async (ctx) => {
 	const group = new Group()
