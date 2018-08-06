@@ -6,16 +6,18 @@ const Group = require('../models/Group')
 class RBAC {
 	static async addPrincipalRoles(Principal, principalId, roles) {
 		const principal = await Principal.findById(principalId).exec()
-		if (typeof roles === 'string') {
-			const role = await Role.findOrCreate(roles)
-			if (principal.roles.indexOf(role._id) === -1) principal.roles.push(role)
-			await principal.save()
-		} else {
-			for (const r of roles) {
-				const role = await Role.findOrCreate(r)
+		if (principal) {
+			if (typeof roles === 'string') {
+				const role = await Role.findOrCreate(roles)
 				if (principal.roles.indexOf(role._id) === -1) principal.roles.push(role)
+				await principal.save()
+			} else {
+				for (const r of roles) {
+					const role = await Role.findOrCreate(r)
+					if (principal.roles.indexOf(role._id) === -1) principal.roles.push(role)
+				}
+				await principal.save()
 			}
-			await principal.save()
 		}
 	}
 
@@ -25,6 +27,37 @@ class RBAC {
 
 	static async addGroupRoles(groupId, roles) {
 		await this.addPrincipalRoles(Group, groupId, roles)
+	}
+
+	static async removePrincipalRoles(Principal, principalId, roles) {
+		const principal = await Principal.findById(principalId).exec()
+		if (principal) {
+			if (typeof roles === 'string') {
+				const role = await Role.findOne({value: roles}).exec()
+				if (role) {
+					const index = principal.roles.indexOf(role._id)
+					principal.roles.splice(index, 1)
+					await principal.save()
+				}
+			} else {
+				for (const r of roles) {
+					const role = await Role.findOne({value: r}).exec()
+					if (role) {
+						const index = principal.roles.indexOf(role._id)
+						principal.roles.splice(index, 1)
+					}
+				}
+				await principal.save()
+			}
+		}
+	}
+
+	static async removeUserRoles(userId, roles) {
+		await this.removePrincipalRoles(User, userId, roles)
+	}
+
+	static async removeGroupRoles(groupId, roles) {
+		await this.removePrincipalRoles(Group, groupId, roles)
 	}
 
 	static async addRolesInherits(roles, inherits) {
@@ -48,20 +81,62 @@ class RBAC {
 		}
 	}
 
+	static async removeRolesInherits(roles, inherits) {
+		if (typeof roles === 'string') {
+			if (typeof inherits === 'string') {
+				const role = await Role.findOne({value: roles}).exec()
+				if (role) {
+					const parent = await Role.findOne({value: inherits}).exec()
+					if (parent) {
+						const index = role.inherits.indexOf(parent._id)
+						role.inherits.splice(index, 1)
+						await role.save()
+					}
+				}
+			} else {
+				const role = await Role.findOne({value: roles}).exec()
+				if (role) {
+					for (const r of inherits) {
+						const parent = await Role.findOne({value: r}).exec()
+						if (parent) {
+							const index = role.inherits.indexOf(parent._id)
+							role.inherits.splice(index, 1)
+						}
+					}
+					await role.save()
+				}
+			}
+		} else {
+			for (const r of roles)
+				this.removeRolesInherits(r, inherits)
+		}
+	}
+
+	static async removeRoles(roles) {
+		if (typeof roles === 'string') {
+			await Role.findOneAndRemove({value: roles}).exec()
+		} else {
+			for (const r of roles)
+				await Role.findOneAndRemove({value: r}).exec()
+		}
+	}
+
 	static async addPrincipalPermissions(Principal, principalId, permissions, action) {
 		action = action || 'allow'
 		const principal = await Principal.findById(principalId).exec()
-		if (principal.action !== action) {
-			principal.action = action
-			principal.permissions = []
+		if (principal) {
+			if (principal.action !== action) {
+				principal.action = action
+				principal.permissions = []
+			}
+			if (typeof permissions === 'string') {
+				if (principal.permissions.indexOf(permissions) === -1) principal.permissions.push(permissions)
+			} else {
+				for (const p of permissions)
+					if (principal.permissions.indexOf(p) === -1) principal.permissions.push(p)
+			}
+			await principal.save()
 		}
-		if (typeof permissions === 'string') {
-			if (principal.permissions.indexOf(permissions) === -1) principal.permissions.push(permissions)
-		} else {
-			for (const p of permissions)
-				if (principal.permissions.indexOf(p) === -1) principal.permissions.push(p)
-		}
-		await principal.save()
 	}
 
 	static async addUserPermissions(userId, permissions, action) {
@@ -90,6 +165,57 @@ class RBAC {
 		} else {
 			for (const r of roles)
 				await this.addRolesPermissions(r, permissions, action)
+		}
+	}
+
+	static async removePrincipalPermissions(Principal, principalId, permissions, action) {
+		action = action || 'allow'
+		const principal = await Principal.findById(principalId).exec()
+		if (principal) {
+			if (principal.action === action) { // The action should be the same, otherwise reject
+				if (typeof permissions === 'string') {
+					const index = principal.permissions.indexOf(permissions)
+					principal.permissions.splice(index, 1)
+				} else {
+					for (const p of permissions) {
+						const index = principal.permissions.indexOf(p)
+						principal.permissions.splice(index, 1)
+					}
+				}
+				await principal.save()
+			}
+		}
+	}
+
+	static async removeUserPermissions(userId, permissions, action) {
+		await this.removePrincipalPermissions(User, userId, permissions, action)
+	}
+
+	static async removeGroupPermissions(groupId, permissions, action) {
+		await this.removePrincipalPermissions(Group, groupId, permissions, action)
+	}
+
+	static async removeRolesPermissions(roles, permissions, action) {
+		action = action || 'allow'
+		if (typeof roles === 'string') {
+			const role = await Role.findOne({value: roles}).exec()
+			if (role) {
+				if (role.action === action) {
+					if (typeof permissions === 'string') {
+						const index = role.permissions.indexOf(permissions)
+						role.permissions.splice(index, 1)
+					} else {
+						for (const p of permissions) {
+							const index = role.permissions.indexOf(p)
+							role.permissions.splice(index, 1)
+						}
+					}
+					await role.save()
+				}
+			}
+		} else {
+			for (const r of roles)
+				await this.removeRolesPermissions(r, permissions, action)
 		}
 	}
 
@@ -144,37 +270,43 @@ class RBAC {
 
 	static async _findUserPermission(userId, permission) {
 		const user = await User.findById(userId).exec()
-		// find all the permissions of user
-		if (this._hasPermission(user, permission)) return true
-		// find all the permissions of user's roles
-		for (const rId of user.roles)
-			if (await this._findRolePermission(rId, permission)) return true
-		// find all the permissions of user's groups
-		for (const gId of user.groups)
-			if (await this._findGroupPermission(gId, permission)) return true
+		if (user) {
+			// find all the permissions of user
+			if (this._hasPermission(user, permission)) return true
+			// find all the permissions of user's roles
+			for (const rId of user.roles)
+				if (await this._findRolePermission(rId, permission)) return true
+			// find all the permissions of user's groups
+			for (const gId of user.groups)
+				if (await this._findGroupPermission(gId, permission)) return true
+		}
 		return false
 	}
 
 	static async _findGroupPermission(groupId, permission) {
 		const group = await Group.findById(groupId).exec()
-		// find all the permissions of group
-		if (this._hasPermission(group, permission)) return true
-		// find all the permissions of group's roles
-		for (const rId of group.roles)
-			if (await this._findRolePermission(rId, permission)) return true
-		// find all the permissions of group's groups
-		for (const gId of group.groups)
-			if (await this._findGroupPermission(gId, permission)) return true
+		if (group) {
+			// find all the permissions of group
+			if (this._hasPermission(group, permission)) return true
+			// find all the permissions of group's roles
+			for (const rId of group.roles)
+				if (await this._findRolePermission(rId, permission)) return true
+			// find all the permissions of group's groups
+			for (const gId of group.groups)
+				if (await this._findGroupPermission(gId, permission)) return true
+		}
 		return false
 	}
 
 	static async _findRolePermission(roleId, permission) {
 		const role = await Role.findById(roleId).exec()
-		// find all the permissions of role
-		if (this._hasPermission(role, permission)) return true
-		// find all the permissions of role's inherited roles
-		for (const rId of role.inherits)
-			if (await this._findRolePermission(rId, permission)) return true
+		if (role) {
+			// find all the permissions of role
+			if (this._hasPermission(role, permission)) return true
+			// find all the permissions of role's inherited roles
+			for (const rId of role.inherits)
+				if (await this._findRolePermission(rId, permission)) return true
+		}
 		return false
 	}
 }

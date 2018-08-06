@@ -189,13 +189,13 @@ router.get('/data/:id', async (ctx) => {
 
 const RBAC = require('../lib/rbac')
 router.get('/role', async (ctx) => {
-	const group = new Group()
-	await group.save()
-	const user = await User.findById(ctx.state.user).exec()
-	user.groups.push(group)
-	user.save()
+	// const group = new Group()
+	// await group.save()
+	// const user = await User.findById(ctx.state.user).exec()
+	// user.groups.push(group)
+	// user.save()
 	await RBAC.addUserRoles(ctx.state.user, 'member')
-	await RBAC.addGroupPermissions(group._id, 'blog:put')
+	// await RBAC.addGroupPermissions(group._id, 'blog:put')
 	await RBAC.addRolesInherits('member', 'guest')
 	await RBAC.addRolesPermissions('guest', 'blog:get', 'allow')
 	await RBAC.addRolesPermissions(['member', 'foo'], ['blog:post'])
@@ -222,6 +222,16 @@ router.get('/role', async (ctx) => {
 
 router.get('/role/middleware', RBAC.middleware('blog:put'), async (ctx) => {
 	ctx.body = 'Hello I\'m blog'
+})
+
+router.get('/role/remove', async (ctx) => {
+	await RBAC.removeUserRoles(ctx.state.user, ['member'])
+	await RBAC.removeRolesInherits(['baz'], ['foo'])
+	await RBAC.removeUserPermissions(ctx.state.user, ['blog:put'], 'deny')
+	await RBAC.removeUserPermissions(ctx.state.user, ['blog:patch'])
+	await RBAC.removeRolesPermissions(['guest'], ['blog:get'])
+	await RBAC.removeRoles(['local'])
+	ctx.body = await User.findById(ctx.state.user).exec()
 })
 
 module.exports = router
