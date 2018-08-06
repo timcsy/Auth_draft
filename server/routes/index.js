@@ -169,9 +169,33 @@ router.get('/group/:id', async (ctx) => {
 	ctx.body = group.users
 })
 
+const Data = require('../models/Data')
+router.get('/data', async (ctx) => {
+	const data = new Data()
+	data.owners.push(ctx.state.user)
+	await data.save()
+	ctx.body = data
+})
+
+router.get('/data/:id', async (ctx) => {
+	const data = await Data.findById(ctx.params.id)
+	if (await RBAC.check(ctx.state.user, 'blog:patch', data))
+		ctx.body = data
+	else ctx.throw(401)
+	// if (await RBAC.check(ctx.state.user, 'blog:put', data))
+	// 	ctx.body = data
+	// else ctx.throw(401)
+})
+
 const RBAC = require('../lib/rbac')
 router.get('/role', async (ctx) => {
+	const group = new Group()
+	await group.save()
+	const user = await User.findById(ctx.state.user).exec()
+	user.groups.push(group)
+	user.save()
 	await RBAC.addUserRoles(ctx.state.user, 'member')
+	await RBAC.addGroupPermissions(group._id, 'blog:put')
 	await RBAC.addRolesInherits('member', 'guest')
 	await RBAC.addRolesPermissions('guest', 'blog:get', 'allow')
 	await RBAC.addRolesPermissions(['member', 'foo'], ['blog:post'])
@@ -189,9 +213,10 @@ router.get('/role', async (ctx) => {
 			action: 'deny'
 		}
 	])
-	await RBAC.addUserPermissions(ctx.state.user, ['blog:put'], 'deny')
+	await RBAC.addUserPermissions(ctx.state.user, ['blog:put', 'blog:patch'], 'deny')
 	console.log(await RBAC.check(ctx.state.user, 'blog:get'))
 	console.log(await RBAC.check(ctx.state.user, 'blog:put'))
+	console.log(await RBAC.check(ctx.state.user, 'blog:patch'))
 	ctx.body = await User.findById(ctx.state.user).exec()
 })
 

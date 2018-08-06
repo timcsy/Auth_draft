@@ -104,18 +104,18 @@ class RBAC {
 
 	static async check(userId, permission, data) {
 		if (data && data.owners) { // if data not null check if the user or the user's group owns the data
-			if (data.owners.includes(userId)) return await this._findUserPermission(userId, permission)
+			if (data.owners.indexOf(userId) >= 0) return await this._findUserPermission(userId, permission)
 			const user = await User.findById(userId).exec()
 			for (const gId of user.groups)
-				if (data.owners.includes(gId)) return await this._findGroupPermission(gId, permission)
+				if (data.owners.indexOf(gId) >= 0) return await this._findGroupPermission(gId, permission)
 			return false
 		}
 		return await this._findUserPermission(userId, permission)
 	}
 
-	static middleware(permission, data) {
+	static middleware(permission) {
 		return async (ctx, next) => {
-			const available = await this.check(ctx.state.user, permission, data)
+			const available = await this.check(ctx.state.user, permission)
 			if (available) await next()
 			else ctx.throw(401)
 		}
