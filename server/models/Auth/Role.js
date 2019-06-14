@@ -1,4 +1,4 @@
-const mongoose = require('./Database/mongoose')
+const mongoose = require('../Database/mongoose')
 
 const roleSchema = new mongoose.Schema({
 	value: {type: String, unique: true},
@@ -14,6 +14,15 @@ roleSchema.statics.findOrCreate = async function(rolename) {
 		await role.save()
 	}
 	return role
+}
+
+roleSchema.methods.view = function() {
+	return {
+		value: this.value,
+		permissions: this.permissions,
+		action: this.action,
+		inherits: this.inherits.map(r => (r.value)? r.value: r)
+	}
 }
 
 const Role = mongoose.model('Role', roleSchema)

@@ -1,13 +1,14 @@
 const Koa = require('koa')
 const session = require('koa-session')
 const bodyParser = require('koa-bodyparser')
-const passport = require('./passort')
+const passport = require('./lib/passort')
 const router = require('./routes')
+const config = require('./config/server')
 
 const app = new Koa()
 
 // sessions
-app.keys = ['super-secret-key']
+app.keys = config.SESSION_KEYS
 app.use(session(app))
 
 // body parser
@@ -22,5 +23,6 @@ app.use(router.routes())
 
 // server
 app.listen(80, () => {
+	console.log('You have to setup at first time: npm run setup')
 	console.log('Server is running at http://localhost')
 })

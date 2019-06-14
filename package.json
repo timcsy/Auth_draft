@@ -1,12 +1,13 @@
 {
-  "name": "rabc",
+  "name": "auth",
   "version": "1.0.0",
   "description": "",
   "private": true,
   "scripts": {
     "build": "webpack",
     "server": "node server",
-    "start": "npm run build && npm run server"
+    "start": "npm run build && npm run server",
+    "setup": "node server/setup.js"
   },
   "author": "",
   "license": "ISC",
@@ -22,6 +23,8 @@
     "minimatch": "^3.0.4",
     "mongoose": "^5.2.6",
     "passport-facebook": "^2.1.1",
+    "passport-facebook-token": "^3.3.0",
+    "passport-jwt": "^4.0.0",
     "passport-local": "^1.0.0"
   }
 }

@@ -1,5 +1,6 @@
-const mongoose = require('./Database/mongoose')
+const mongoose = require('../Database/mongoose')
 const User = require('./User')
+const RBAC = require('../../lib/rbac')
 
 const options = {discriminatorKey: 'type'}
 
@@ -9,10 +10,17 @@ const identitySchema = new mongoose.Schema({
 
 identitySchema.methods.unlink = async function() {
 	if ((await this.model('Identity').find({user: this.user}, {}).exec()).length > 1) {
-		const user = new User()
-		await user.save()
+		const user = await User.create()
+		await RBAC.addUserRoles(user._id, 'member')
 		this.user = user
 		await this.save()
+	}
+}
+
+identitySchema.methods.view = function() {
+	return {
+		_id: this._id,
+		user: this.user
 	}
 }
 
