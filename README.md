@@ -8,7 +8,7 @@ https://auth.tew.tw
 安裝
 ---
 ```
-npm instll
+npm install
 ```
 
 設定
